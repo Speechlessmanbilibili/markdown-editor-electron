@@ -32,7 +32,7 @@
       "icon": "public/icon.icns"
     },
     "linux": {
-      "target": "AppImage",
+      "target": "tar.gz",
       "icon": "public/icon.png"
     },
     "nsis": {

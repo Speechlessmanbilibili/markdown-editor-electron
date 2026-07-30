@@ -1,7 +1,8 @@
 {
   "name": "markdown-editor-electron",
   "version": "1.0.0",
-  "description": "Markdown editor with Word/PDF conversion — Electron desktop app",
+  "description": "Markdown 桌面编辑器，支持 Word/PDF 导入导出",
+  "author": "Speechlessmanbilibili",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

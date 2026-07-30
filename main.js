@@ -1,42 +1,38 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
-const { fork } = require('child_process');
+const { createApp } = require('./server');
+
+// 数据存储在用户目录（而非 asar 内），跨版本保留
+const userDataPath = app.getPath('userData');
+const savesDir = path.join(userDataPath, 'saves');
+const uploadsDir = path.join(userDataPath, 'uploads');
+const publicDir = path.join(__dirname, 'public');
 
 let mainWindow = null;
-let serverProcess = null;
-
-// 找一个可用端口
-function getPort() {
-  // Electron 环境下直接用固定端口即可，一般不会冲突
-  return 3055;
-}
+let serverInstance = null;
+const PORT = 3055;
 
 function startServer() {
   return new Promise((resolve, reject) => {
-    const serverPath = path.join(__dirname, 'server.js');
-    serverProcess = fork(serverPath, [], {
-      env: { ...process.env, ELECTRON_RUN: '1' },
-      silent: true
+    const expressApp = createApp({
+      publicDir,
+      savesDir,
+      uploadsDir
     });
 
-    serverProcess.stdout.on('data', (data) => {
-      const msg = data.toString();
-      process.stdout.write('[server] ' + msg);
-      // 等服务就绪信号
+    serverInstance = expressApp.listen(PORT, () => {
+      console.log(`📝 服务已启动 http://localhost:${PORT}`);
+      resolve();
     });
 
-    serverProcess.stderr.on('data', (data) => {
-      process.stderr.write('[server] ' + data.toString());
+    serverInstance.on('error', (err) => {
+      console.error('服务启动失败:', err);
+      reject(err);
     });
-
-    serverProcess.on('error', reject);
-
-    // 给服务一点时间启动
-    setTimeout(resolve, 1500);
   });
 }
 
-function createWindow() {
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -44,6 +40,7 @@ function createWindow() {
     minHeight: 600,
     title: 'Markdown Editor Pro',
     backgroundColor: '#0d0d1a',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -51,9 +48,13 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL(`http://localhost:${getPort()}`);
+  // 准备好后再显示，避免白屏闪烁
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
-  // 外部链接用默认浏览器打开
+  await mainWindow.loadURL(`http://localhost:${PORT}`);
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -65,8 +66,13 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  await startServer();
-  createWindow();
+  try {
+    await startServer();
+    await createWindow();
+  } catch (err) {
+    console.error('启动失败:', err);
+    app.quit();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -74,10 +80,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (serverProcess) serverProcess.kill();
+  if (serverInstance) serverInstance.close();
   if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
-  if (serverProcess) serverProcess.kill();
+  if (serverInstance) serverInstance.close();
 });

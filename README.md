@@ -1,6 +1,6 @@
 # 📝 Markdown Editor Pro — 桌面版
 
-基于 Electron 的 Markdown 桌面编辑器，采用 Apple Liquid Glass 设计风格，支持 Word / PDF 导入导出、实时预览、深色/浅色主题。
+基于 Electron 的 Markdown 桌面编辑器，支持 Word / PDF 导入导出、实时预览、深色/浅色主题。
 
 ## ✨ 功能
 
@@ -12,7 +12,6 @@
 - **📋 大纲导航** — 自动生成文档大纲，点击跳转
 - **🔍 查找替换** — Ctrl+F 查找，逐个替换和全部替换
 - **⌨️ 快捷键** — `Ctrl+B` 粗体 `Ctrl+I` 斜体 `Ctrl+K` 链接 `Ctrl+S` 保存 `Ctrl+F` 查找
-- **💎 液态玻璃设计** — SVG 滤镜驱动的视觉效果，鼠标跟踪视差光球
 - **🖥 原生桌面窗口** — 独立窗口，不受浏览器限制
 
 ## 🚀 快速开始
@@ -68,10 +67,9 @@ markdown-editor-electron/
 ├── package.json
 ├── public/
 │   ├── index.html       # 编辑器主页面（中文界面）
-│   ├── css/style.css    # 样式（液态玻璃设计）
+│   ├── css/style.css    # 样式
 │   └── js/
 │       ├── app.js       # 前端逻辑
-│       └── liquid-glass-fx.js  # SVG 滤镜 + 视差光球
 └── dist/                # 构建产物
 ```
 

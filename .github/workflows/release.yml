@@ -5,15 +5,18 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
       matrix:
         include:
           - os: windows-latest
-            build_script: build:win
+            args: --win
           - os: ubuntu-latest
-            build_script: build:linux
+            args: --linux
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -27,9 +30,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run ${{ matrix.build_script }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder ${{ matrix.args }} --publish never
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2

@@ -1,5 +1,6 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { createApp } = require('./server');
 
 // 数据存储在用户目录（而非 asar 内），跨版本保留
@@ -11,6 +12,30 @@ const publicDir = path.join(__dirname, 'public');
 let mainWindow = null;
 let serverInstance = null;
 const PORT = 3055;
+
+// ---------- 原生导出（IPC） ----------
+// 渲染进程通过 electronAPI 调用，用原生「另存为」对话框 + 文件写入/复制，
+// 替代浏览器下载机制（Electron 的 window.open 会被拦截、<a download> 不可靠）。
+ipcMain.handle('save-file-dialog', async (event, defaultName) => {
+  const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: defaultName || 'document.md'
+  });
+  if (result.canceled || !result.filePath) return null;
+  return result.filePath;
+});
+
+ipcMain.handle('write-text-file', async (event, { path: filePath, content }) => {
+  await fs.promises.writeFile(filePath, content, 'utf-8');
+  return true;
+});
+
+ipcMain.handle('get-uploads-dir', async () => uploadsDir);
+
+ipcMain.handle('copy-export-file', async (event, { src, dest }) => {
+  await fs.promises.copyFile(src, dest);
+  return true;
+});
 
 function startServer() {
   return new Promise((resolve, reject) => {

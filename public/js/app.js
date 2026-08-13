@@ -472,10 +472,35 @@ async function handleFile(file) {
    Export Actions
    ============================================================ */
 
+/** 是否运行在 Electron（有原生对话框与文件能力） */
+const inElectron = () => typeof window.electronAPI !== 'undefined' && window.electronAPI.isElectron === true;
+
+/** Electron：弹出原生「另存为」对话框，返回用户选择的路径（取消返回 null） */
+async function saveViaDialog(defaultName) {
+  if (!inElectron()) return null;
+  try {
+    return await window.electronAPI.saveFileDialog(defaultName);
+  } catch {
+    return null;
+  }
+}
+
 /** Download the current markdown as .md file */
-function downloadMD() {
+async function downloadMD() {
   const md = dom.editor.value;
   if (!md.trim()) return toast('请先编写内容', 'warning');
+
+  if (inElectron()) {
+    const dest = await saveViaDialog('document.md');
+    if (!dest) return;
+    try {
+      await window.electronAPI.writeTextFile(dest, md);
+      toast(`已保存到 ${dest}`, 'success');
+    } catch (err) {
+      toast(`保存失败：${err}`, 'error');
+    }
+    return;
+  }
 
   downloadBlob(md, 'document.md', 'text/markdown;charset=utf-8');
   toast('Markdown 文件已下载', 'success');
@@ -500,7 +525,21 @@ async function convertToWord() {
     }
     const data = await res.json();
 
-    // Trigger download
+    // Electron：原生「另存为」对话框选择保存位置
+    if (inElectron()) {
+      const dest = await saveViaDialog(data.filename || 'converted.doc');
+      if (!dest) return;
+      try {
+        const dir = await window.electronAPI.getUploadsDir();
+        await window.electronAPI.copyExportFile(`${dir}/${data.filename}`, dest);
+        toast(`已保存到 ${dest}`, 'success');
+      } catch (err) {
+        toast(`Word 导出失败：${err}`, 'error');
+      }
+      return;
+    }
+
+    // Trigger download（浏览器回退）
     const a = document.createElement('a');
     a.href = data.downloadUrl;
     a.download = 'converted.doc';
@@ -530,6 +569,21 @@ async function convertToPDF() {
     if (!res.ok) throw new Error('服务器错误');
 
     const data = await res.json();
+
+    // Electron：原生「另存为」对话框保存打印页
+    if (inElectron()) {
+      const dest = await saveViaDialog(data.filename || 'document.pdf');
+      if (!dest) return;
+      try {
+        const dir = await window.electronAPI.getUploadsDir();
+        await window.electronAPI.copyExportFile(`${dir}/${data.filename}`, dest);
+        toast(`已保存打印页到 ${dest}，用浏览器打开后 Ctrl+P 可另存为 PDF`, 'success');
+      } catch (err) {
+        toast(`PDF 导出失败：${err}`, 'error');
+      }
+      return;
+    }
+
     const win = window.open(data.downloadUrl, '_blank');
 
     if (!win) {

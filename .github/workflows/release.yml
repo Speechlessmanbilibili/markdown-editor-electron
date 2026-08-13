@@ -15,7 +15,7 @@ jobs:
         include:
           - os: windows-latest
             args: --win
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             args: --linux
     runs-on: ${{ matrix.os }}
     steps:

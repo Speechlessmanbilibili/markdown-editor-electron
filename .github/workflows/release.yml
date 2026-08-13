@@ -26,6 +26,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libgbm1 libnss3 libasound2 libxss1
+
       - name: Install dependencies
         run: npm ci
 
